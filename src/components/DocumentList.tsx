@@ -93,7 +93,12 @@ function DocumentRow({
   async function handleRename() {
     const trimmed = title.trim();
     setRenaming(false);
-    if (!trimmed || trimmed === doc.title) {
+    if (!trimmed) {
+      setTitle(doc.title);
+      setError("Title can't be empty");
+      return;
+    }
+    if (trimmed === doc.title) {
       setTitle(doc.title);
       return;
     }
@@ -163,7 +168,10 @@ function DocumentRow({
       </div>
       <div className="flex shrink-0 items-center gap-2 text-xs">
         <button
-          onClick={() => setRenaming(true)}
+          onClick={() => {
+            setError(null);
+            setRenaming(true);
+          }}
           disabled={busy}
           className="rounded px-2 py-1 text-zinc-600 hover:bg-zinc-100 disabled:opacity-50 dark:text-zinc-300 dark:hover:bg-zinc-800"
         >

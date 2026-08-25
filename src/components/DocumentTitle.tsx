@@ -12,14 +12,15 @@ export function DocumentTitle({
 }) {
   const router = useRouter();
   const [title, setTitle] = useState(initialTitle);
-  const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">(
-    "idle",
-  );
+  const [status, setStatus] = useState<
+    "idle" | "saving" | "saved" | "error" | "empty"
+  >("idle");
 
   async function save() {
     const trimmed = title.trim();
     if (!trimmed) {
       setTitle(initialTitle);
+      setStatus("empty");
       return;
     }
     if (trimmed === initialTitle) return;
@@ -43,7 +44,10 @@ export function DocumentTitle({
     <div className="flex items-center gap-3">
       <input
         value={title}
-        onChange={(e) => setTitle(e.target.value)}
+        onChange={(e) => {
+          setTitle(e.target.value);
+          setStatus("idle");
+        }}
         onBlur={save}
         onKeyDown={(e) => {
           if (e.key === "Enter") e.currentTarget.blur();
@@ -58,6 +62,11 @@ export function DocumentTitle({
       )}
       {status === "error" && (
         <span className="shrink-0 text-xs text-red-500">Couldn&apos;t save</span>
+      )}
+      {status === "empty" && (
+        <span className="shrink-0 text-xs text-red-500">
+          Title can&apos;t be empty
+        </span>
       )}
     </div>
   );

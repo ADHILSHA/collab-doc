@@ -1,6 +1,8 @@
 import { getAllUsers } from "@/lib/users";
 import { loginAs } from "./actions";
 
+export const dynamic = "force-dynamic";
+
 export default async function LoginPage() {
   const users = await getAllUsers();
 

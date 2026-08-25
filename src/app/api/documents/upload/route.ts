@@ -2,15 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { createDocumentFromUpload } from "@/lib/documents";
 import { markdownToTiptapJSON, plainTextToTiptapJSON } from "@/lib/markdown";
+import {
+  ALLOWED_UPLOAD_EXTENSIONS,
+  getFileExtension,
+  MAX_UPLOAD_SIZE_BYTES,
+} from "@/lib/upload";
 import type { Prisma } from "@/generated/prisma/client";
-
-export const ALLOWED_EXTENSIONS = ["txt", "md"] as const;
-const MAX_FILE_SIZE_BYTES = 1024 * 1024; // 1MB
-
-function getExtension(filename: string): string {
-  const idx = filename.lastIndexOf(".");
-  return idx === -1 ? "" : filename.slice(idx + 1).toLowerCase();
-}
 
 function titleFromFilename(filename: string): string {
   const idx = filename.lastIndexOf(".");
@@ -30,15 +27,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "No file provided" }, { status: 400 });
   }
 
-  const extension = getExtension(file.name);
-  if (!ALLOWED_EXTENSIONS.includes(extension as "txt" | "md")) {
+  const extension = getFileExtension(file.name);
+  if (
+    !ALLOWED_UPLOAD_EXTENSIONS.includes(extension as "txt" | "md")
+  ) {
     return NextResponse.json(
       { error: "Only .txt and .md files are supported" },
       { status: 400 },
     );
   }
 
-  if (file.size > MAX_FILE_SIZE_BYTES) {
+  if (file.size > MAX_UPLOAD_SIZE_BYTES) {
     return NextResponse.json(
       { error: "File is too large (max 1MB)" },
       { status: 400 },
@@ -46,10 +45,22 @@ export async function POST(request: NextRequest) {
   }
 
   const text = await file.text();
-  const content =
-    extension === "md"
-      ? markdownToTiptapJSON(text)
-      : plainTextToTiptapJSON(text);
+  if (!text.trim()) {
+    return NextResponse.json({ error: "File is empty" }, { status: 400 });
+  }
+
+  let content: unknown;
+  try {
+    content =
+      extension === "md"
+        ? markdownToTiptapJSON(text)
+        : plainTextToTiptapJSON(text);
+  } catch {
+    return NextResponse.json(
+      { error: "Couldn't parse this file's content" },
+      { status: 400 },
+    );
+  }
 
   const document = await createDocumentFromUpload(user.id, {
     title: titleFromFilename(file.name),

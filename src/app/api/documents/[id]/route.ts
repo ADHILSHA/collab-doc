@@ -8,6 +8,8 @@ import {
 import { isOwner } from "@/lib/permissions";
 import type { Prisma } from "@/generated/prisma/client";
 
+const MAX_CONTENT_SIZE_BYTES = 2 * 1024 * 1024; // 2MB
+
 type RouteContext = { params: Promise<{ id: string }> };
 
 export async function GET(_request: NextRequest, { params }: RouteContext) {
@@ -63,6 +65,12 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
       Array.isArray(body.content)
     ) {
       return NextResponse.json({ error: "Invalid content" }, { status: 400 });
+    }
+    if (JSON.stringify(body.content).length > MAX_CONTENT_SIZE_BYTES) {
+      return NextResponse.json(
+        { error: "Document content is too large" },
+        { status: 400 },
+      );
     }
     updates.content = body.content as Prisma.InputJsonValue;
   }

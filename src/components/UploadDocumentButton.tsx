@@ -2,13 +2,11 @@
 
 import { useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
-
-const ALLOWED_EXTENSIONS = ["txt", "md"];
-
-function getExtension(filename: string): string {
-  const idx = filename.lastIndexOf(".");
-  return idx === -1 ? "" : filename.slice(idx + 1).toLowerCase();
-}
+import {
+  ALLOWED_UPLOAD_EXTENSIONS,
+  getFileExtension,
+  MAX_UPLOAD_SIZE_BYTES,
+} from "@/lib/upload";
 
 export function UploadDocumentButton() {
   const router = useRouter();
@@ -22,8 +20,17 @@ export function UploadDocumentButton() {
 
     setError(null);
 
-    if (!ALLOWED_EXTENSIONS.includes(getExtension(file.name))) {
+    if (
+      !ALLOWED_UPLOAD_EXTENSIONS.includes(
+        getFileExtension(file.name) as "txt" | "md",
+      )
+    ) {
       setError("Only .txt and .md files are supported.");
+      return;
+    }
+
+    if (file.size > MAX_UPLOAD_SIZE_BYTES) {
+      setError("File is too large (max 1MB).");
       return;
     }
 
