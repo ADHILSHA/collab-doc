@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Check, Loader2 } from "lucide-react";
 
 export function DocumentTitle({
   documentId,
@@ -41,7 +42,7 @@ export function DocumentTitle({
   }
 
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex min-w-0 items-center gap-2.5">
       <input
         value={title}
         onChange={(e) => {
@@ -52,21 +53,20 @@ export function DocumentTitle({
         onKeyDown={(e) => {
           if (e.key === "Enter") e.currentTarget.blur();
         }}
-        className="w-full max-w-lg border-b border-transparent bg-transparent text-xl font-semibold text-zinc-900 focus:border-zinc-300 focus:outline-none dark:text-zinc-50"
+        aria-label="Document title"
+        className="focus-ring min-w-0 flex-1 rounded-sm border-b border-transparent bg-transparent text-lg font-semibold text-foreground transition-colors hover:border-border focus:border-border-strong sm:text-xl"
       />
       {status === "saving" && (
-        <span className="shrink-0 text-xs text-zinc-400">Saving…</span>
+        <Loader2 className="size-3.5 shrink-0 animate-spin text-muted-foreground" />
       )}
       {status === "saved" && (
-        <span className="shrink-0 text-xs text-emerald-500">Saved</span>
+        <Check className="size-3.5 shrink-0 text-success" />
       )}
       {status === "error" && (
-        <span className="shrink-0 text-xs text-red-500">Couldn&apos;t save</span>
+        <span className="shrink-0 text-xs text-error">Couldn&apos;t save</span>
       )}
       {status === "empty" && (
-        <span className="shrink-0 text-xs text-red-500">
-          Title can&apos;t be empty
-        </span>
+        <span className="shrink-0 text-xs text-error">Title can&apos;t be empty</span>
       )}
     </div>
   );

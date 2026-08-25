@@ -9,6 +9,20 @@ import {
   type JSONContent,
 } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
+import {
+  Bold,
+  Italic,
+  Underline,
+  Heading1,
+  Heading2,
+  Pilcrow,
+  List,
+  ListOrdered,
+  Check,
+  Loader2,
+  AlertCircle,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const AUTOSAVE_DELAY_MS = 1000;
 
@@ -64,12 +78,20 @@ export function DocumentEditor({
     };
   }, []);
 
-  if (!editor) return null;
+  if (!editor) {
+    return (
+      <div className="animate-pulse space-y-3 rounded-lg border border-border bg-surface p-6">
+        <div className="h-4 w-1/3 rounded bg-muted" />
+        <div className="h-4 w-full rounded bg-muted" />
+        <div className="h-4 w-2/3 rounded bg-muted" />
+      </div>
+    );
+  }
 
   return (
-    <div>
+    <div className="overflow-hidden rounded-lg border border-border bg-surface shadow-xs">
       <Toolbar editor={editor} status={status} />
-      <div className="rounded-b-lg border border-t-0 border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
+      <div className="px-6 py-8 sm:px-10">
         <EditorContent editor={editor} />
       </div>
     </div>
@@ -92,27 +114,27 @@ function Toolbar({ editor, status }: { editor: Editor; status: string }) {
   });
 
   return (
-    <div className="flex flex-wrap items-center gap-1 rounded-t-lg border border-zinc-200 bg-zinc-50 p-2 dark:border-zinc-800 dark:bg-zinc-800/50">
+    <div className="sticky top-0 z-10 flex flex-wrap items-center gap-0.5 border-b border-border bg-surface/95 px-2.5 py-2 backdrop-blur">
       <ToolbarButton
         active={state.bold}
         label="Bold"
         onClick={() => editor.chain().focus().toggleBold().run()}
       >
-        <strong>B</strong>
+        <Bold />
       </ToolbarButton>
       <ToolbarButton
         active={state.italic}
         label="Italic"
         onClick={() => editor.chain().focus().toggleItalic().run()}
       >
-        <em>I</em>
+        <Italic />
       </ToolbarButton>
       <ToolbarButton
         active={state.underline}
         label="Underline"
         onClick={() => editor.chain().focus().toggleUnderline().run()}
       >
-        <span className="underline">U</span>
+        <Underline />
       </ToolbarButton>
 
       <Divider />
@@ -122,21 +144,21 @@ function Toolbar({ editor, status }: { editor: Editor; status: string }) {
         label="Paragraph"
         onClick={() => editor.chain().focus().setParagraph().run()}
       >
-        P
+        <Pilcrow />
       </ToolbarButton>
       <ToolbarButton
         active={state.h1}
         label="Heading 1"
         onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
       >
-        H1
+        <Heading1 />
       </ToolbarButton>
       <ToolbarButton
         active={state.h2}
         label="Heading 2"
         onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
       >
-        H2
+        <Heading2 />
       </ToolbarButton>
 
       <Divider />
@@ -146,23 +168,34 @@ function Toolbar({ editor, status }: { editor: Editor; status: string }) {
         label="Bulleted list"
         onClick={() => editor.chain().focus().toggleBulletList().run()}
       >
-        • List
+        <List />
       </ToolbarButton>
       <ToolbarButton
         active={state.orderedList}
         label="Numbered list"
         onClick={() => editor.chain().focus().toggleOrderedList().run()}
       >
-        1. List
+        <ListOrdered />
       </ToolbarButton>
 
-      <div className="ml-auto text-xs text-zinc-400">
-        {status === "saving" && "Saving…"}
+      <div className="ml-auto flex items-center gap-1.5 pr-1 text-xs text-muted-foreground">
+        {status === "saving" && (
+          <>
+            <Loader2 className="size-3.5 animate-spin" />
+            Saving…
+          </>
+        )}
         {status === "saved" && (
-          <span className="text-emerald-500">Saved</span>
+          <span className="flex items-center gap-1 text-success">
+            <Check className="size-3.5" />
+            Saved
+          </span>
         )}
         {status === "error" && (
-          <span className="text-red-500">Couldn&apos;t save</span>
+          <span className="flex items-center gap-1 text-error">
+            <AlertCircle className="size-3.5" />
+            Couldn&apos;t save
+          </span>
         )}
       </div>
     </div>
@@ -170,7 +203,7 @@ function Toolbar({ editor, status }: { editor: Editor; status: string }) {
 }
 
 function Divider() {
-  return <div className="mx-1 h-5 w-px bg-zinc-300 dark:bg-zinc-700" />;
+  return <div className="mx-1 h-5 w-px bg-border" />;
 }
 
 function ToolbarButton({
@@ -188,13 +221,15 @@ function ToolbarButton({
     <button
       type="button"
       aria-label={label}
+      aria-pressed={active}
       title={label}
       onClick={onClick}
-      className={`rounded px-2.5 py-1.5 text-sm font-medium ${
+      className={cn(
+        "focus-ring flex size-8 items-center justify-center rounded-md text-sm font-medium transition-colors [&_svg]:size-4",
         active
-          ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
-          : "text-zinc-700 hover:bg-zinc-200 dark:text-zinc-300 dark:hover:bg-zinc-700"
-      }`}
+          ? "bg-accent-muted text-accent"
+          : "text-muted-foreground hover:bg-surface-hover hover:text-foreground",
+      )}
     >
       {children}
     </button>

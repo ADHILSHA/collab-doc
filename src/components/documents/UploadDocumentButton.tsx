@@ -2,35 +2,35 @@
 
 import { useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
+import { Upload } from "lucide-react";
+import { toast } from "sonner";
 import {
   ALLOWED_UPLOAD_EXTENSIONS,
   getFileExtension,
   MAX_UPLOAD_SIZE_BYTES,
 } from "@/lib/upload";
+import { Button } from "@/components/ui/Button";
 
 export function UploadDocumentButton() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   async function handleChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) return;
 
-    setError(null);
-
     if (
       !ALLOWED_UPLOAD_EXTENSIONS.includes(
         getFileExtension(file.name) as "txt" | "md",
       )
     ) {
-      setError("Only .txt and .md files are supported.");
+      toast.error("Only .txt and .md files are supported.");
       return;
     }
 
     if (file.size > MAX_UPLOAD_SIZE_BYTES) {
-      setError("File is too large (max 1MB).");
+      toast.error("File is too large (max 1MB).");
       return;
     }
 
@@ -49,15 +49,19 @@ export function UploadDocumentButton() {
       const doc = await res.json();
       router.push(`/documents/${doc.id}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Upload failed");
+      toast.error(err instanceof Error ? err.message : "Upload failed");
       setLoading(false);
     }
   }
 
   return (
-    <div className="flex items-center gap-2">
-      {error && <span className="text-xs text-red-500">{error}</span>}
-      <label className="cursor-pointer rounded-md border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800">
+    <Button variant="secondary" size="sm" asChild>
+      <label
+        className={
+          loading ? "pointer-events-none cursor-default opacity-50" : "cursor-pointer"
+        }
+      >
+        <Upload />
         {loading ? "Uploading…" : "Upload .txt/.md"}
         <input
           type="file"
@@ -67,6 +71,6 @@ export function UploadDocumentButton() {
           onChange={handleChange}
         />
       </label>
-    </div>
+    </Button>
   );
 }
