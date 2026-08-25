@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { canAccessDocument } from "@/lib/permissions";
+import type { Prisma } from "@/generated/prisma/client";
 
 export const TITLE_MAX_LENGTH = 200;
 const DEFAULT_TITLE = "Untitled document";
@@ -47,11 +48,18 @@ export async function getDocumentWithAccess(id: string, userId: string) {
   return { doc, access: canAccessDocument(userId, doc) };
 }
 
-export function renameDocument(id: string, title: string) {
-  return prisma.document.update({
-    where: { id },
-    data: { title: title.trim().slice(0, TITLE_MAX_LENGTH) },
-  });
+export function updateDocument(
+  id: string,
+  updates: { title?: string; content?: Prisma.InputJsonValue },
+) {
+  const data: Prisma.DocumentUpdateInput = {};
+  if (updates.title !== undefined) {
+    data.title = updates.title.trim().slice(0, TITLE_MAX_LENGTH);
+  }
+  if (updates.content !== undefined) {
+    data.content = updates.content;
+  }
+  return prisma.document.update({ where: { id }, data });
 }
 
 export function deleteDocument(id: string) {

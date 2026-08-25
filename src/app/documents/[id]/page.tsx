@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import type { JSONContent } from "@tiptap/react";
 import { requireCurrentUser } from "@/lib/auth";
 import { getDocumentWithAccess } from "@/lib/documents";
 import { DocumentTitle } from "@/components/DocumentTitle";
+import { DocumentEditor } from "@/components/DocumentEditor";
 
 export default async function DocumentPage({
   params,
@@ -51,9 +53,10 @@ export default async function DocumentPage({
       </header>
 
       <main className="mx-auto max-w-3xl px-6 py-10">
-        <div className="rounded-lg border border-dashed border-zinc-300 p-8 text-center text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
-          Rich text editing lands in Phase 3.
-        </div>
+        <DocumentEditor
+          documentId={doc.id}
+          initialContent={doc.content as unknown as JSONContent}
+        />
       </main>
     </div>
   );

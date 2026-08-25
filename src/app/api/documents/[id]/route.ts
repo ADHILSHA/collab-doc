@@ -3,9 +3,10 @@ import { getCurrentUser } from "@/lib/auth";
 import {
   deleteDocument,
   getDocumentWithAccess,
-  renameDocument,
+  updateDocument,
 } from "@/lib/documents";
 import { isOwner } from "@/lib/permissions";
+import type { Prisma } from "@/generated/prisma/client";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -43,14 +44,34 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
   }
 
   const body = await request.json().catch(() => ({}) as Record<string, unknown>);
-  if (typeof body.title !== "string" || !body.title.trim()) {
-    return NextResponse.json(
-      { error: "Title cannot be empty" },
-      { status: 400 },
-    );
+  const updates: { title?: string; content?: Prisma.InputJsonValue } = {};
+
+  if ("title" in body) {
+    if (typeof body.title !== "string" || !body.title.trim()) {
+      return NextResponse.json(
+        { error: "Title cannot be empty" },
+        { status: 400 },
+      );
+    }
+    updates.title = body.title;
   }
 
-  const updated = await renameDocument(id, body.title);
+  if ("content" in body) {
+    if (
+      typeof body.content !== "object" ||
+      body.content === null ||
+      Array.isArray(body.content)
+    ) {
+      return NextResponse.json({ error: "Invalid content" }, { status: 400 });
+    }
+    updates.content = body.content as Prisma.InputJsonValue;
+  }
+
+  if (Object.keys(updates).length === 0) {
+    return NextResponse.json({ error: "Nothing to update" }, { status: 400 });
+  }
+
+  const updated = await updateDocument(id, updates);
   return NextResponse.json(updated);
 }
 
