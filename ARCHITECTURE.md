@@ -50,6 +50,40 @@ editor uses) rather than just storing a blob. Scope is intentionally narrow:
 clearly stated in the UI and README rather than silently failing on other
 types.
 
+## Stretch features (post-core build)
+
+After the five core requirements were solid, the build continued into the
+brief's own "optional stretch" list: presence indicators → comments →
+document version history (export and role-based permissions are next).
+
+**Presence via polling, not WebSockets.** Vercel's serverless functions can't
+hold a persistent connection, so "who's viewing this document" is a
+DB-backed heartbeat (`DocumentPresence`, upserted every ~5s and polled by
+other viewers), not a live socket. Full real-time co-editing was prototyped
+on a separate branch using Yjs + a standalone WebSocket server, but was
+pulled back out of this branch to keep it shippable and revisit later with
+more time — see the AI workflow note.
+
+**Comments over suggestion mode.** The brief accepts either. Comments are
+anchored to text via a custom, permanent TipTap mark (`commentId` in the
+mark's attrs); resolving/reopening a comment is a pure database flag flip,
+never a content mutation — so there's no risk of losing or misplacing an
+anchor when a comment's state changes. Suggestion/track-changes mode
+(accept/reject-able tracked insertions per user) is a meaningfully larger
+feature — effectively rebuilding what dedicated paid collaboration tooling
+does — and was judged higher-risk to implement well under remaining time.
+
+**Version history as throttled automatic checkpoints, not per-keystroke.**
+Content autosaves ~1s after typing stops, which would create an unusable
+number of versions if every save were versioned. Instead, a snapshot of the
+document's *current* state is taken right before an incoming save overwrites
+it, but only if the last snapshot is more than 5 minutes old — a simple
+time-based throttle rather than diffing content to detect "meaningful"
+changes, which would be far more complex for marginal benefit at this scope.
+Restoring a version snapshots the current state first, so restoring is
+itself always undoable — there's no scenario where hitting "Restore" can
+lose work permanently.
+
 ## What was prioritized
 
 Given the "depth over breadth" guidance, each core requirement (editing,
@@ -63,14 +97,16 @@ empty titles) rather than guessed-at ones.
 
 ## What was deliberately deprioritized
 
-- **Real-time collaboration** (live cursors, presence, concurrent-edit
-  merging). Autosave + refresh is the model; two users editing the same
-  document at the same time will have last-write-wins behavior. Out of scope
-  per the brief's own stretch-goal list.
-- **Granular sharing roles** (view-only vs. edit) and revoke history.
-- **Document version history** and **export to PDF/Markdown** — both listed
-  as optional stretch goals in the brief; not started so the core slices
-  could be solid instead of shallow.
+- **Live co-editing** (real-time concurrent editing with conflict-free
+  merging, not just presence). Prototyped separately with Yjs + a standalone
+  WebSocket server; pulled back out to keep this branch focused and shippable
+  — planned as a follow-up once the remaining stretch items are done.
+- **Granular sharing roles** (view-only vs. edit) and revoke history — next
+  up.
+- **Export to PDF/Markdown** — listed as an optional stretch goal in the
+  brief; not yet started.
+- **Suggestion/track-changes mode** — comments were chosen instead (see
+  above).
 - **Rich `.docx` import** — parsing real Word documents (vs. plain
   text/Markdown) is a meaningfully larger problem (binary format, styles,
   images) that wasn't worth the time against the core requirements.

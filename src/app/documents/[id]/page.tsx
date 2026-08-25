@@ -7,6 +7,7 @@ import { getDocumentWithAccess } from "@/lib/documents";
 import { getAllUsers } from "@/lib/users";
 import { DocumentTitle } from "@/components/documents/DocumentTitle";
 import { DocumentEditor } from "@/components/editor/DocumentEditor";
+import { PresenceIndicator } from "@/components/presence/PresenceIndicator";
 import { ShareDialog } from "@/components/sharing/ShareDialog";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
@@ -68,7 +69,7 @@ export default async function DocumentPage({
             </Badge>
           </div>
 
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="flex shrink-0 items-center gap-3">
             {isOwnerView && (
               <ShareDialog
                 documentTitle={doc.title}
@@ -78,7 +79,10 @@ export default async function DocumentPage({
                 candidates={candidates}
               />
             )}
-            <Avatar name={user.name} colorHex={user.colorHex} size="sm" />
+            <div className="flex items-center -space-x-2">
+              <PresenceIndicator documentId={doc.id} />
+              <Avatar name={user.name} colorHex={user.colorHex} size="sm" />
+            </div>
           </div>
         </div>
       </header>
@@ -86,6 +90,8 @@ export default async function DocumentPage({
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-8 sm:px-6">
         <DocumentEditor
           documentId={doc.id}
+          currentUserId={user.id}
+          isOwner={isOwnerView}
           initialContent={doc.content as unknown as JSONContent}
         />
       </main>

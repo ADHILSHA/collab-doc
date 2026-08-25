@@ -151,3 +151,15 @@ body {
     outline-offset: 2px;
   }
 }
+
+.comment-mark {
+  background-color: var(--warning-muted);
+  border-bottom: 2px solid var(--warning);
+  cursor: pointer;
+  border-radius: 2px;
+  transition: background-color 0.2s ease;
+}
+
+.comment-mark-flash {
+  background-color: var(--accent-muted) !important;
+}

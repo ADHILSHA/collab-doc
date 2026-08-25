@@ -11,6 +11,17 @@ share documents between a few mock users.
 - **Document creation & editing** — create, rename, and edit documents with a
   TipTap-based rich text editor (bold, italic, underline, headings, bulleted
   and numbered lists). Content autosaves ~1s after you stop typing.
+- **Comments** — select any text and leave a comment anchored to it
+  (highlighted in the document). Resolve/reopen without losing the anchor;
+  deleting a comment removes its highlight. Anyone with access to the
+  document can comment; only the comment's author or the document owner can
+  delete it.
+- **Version history** — checkpoints are saved automatically as a document is
+  edited (throttled so a burst of autosaves doesn't create a version per
+  keystroke). Restore any earlier version — restoring saves the current
+  content as a version first, so it's never lost.
+- **Presence** — see who else currently has a document open, shown as
+  avatars in the header (polling-based, updates every ~5s).
 - **File upload** — upload a `.txt` or `.md` file to create a new document.
   Markdown is converted into the same rich-text format the editor produces
   (headings, bold/italic, lists); plain text becomes one paragraph per line.
@@ -19,8 +30,8 @@ share documents between a few mock users.
   access to other seeded users from the document page. Shared documents show
   up under "Shared with Me" on the recipient's dashboard, with the owner's
   name; owned documents are listed separately under "My Documents."
-- **Persistence** — documents and sharing data live in Postgres via Prisma;
-  everything survives a refresh or a fresh login.
+- **Persistence** — documents, comments, versions, and sharing data all live
+  in Postgres via Prisma; everything survives a refresh or a fresh login.
 - **Mock auth** — no real accounts or passwords. Pick one of three seeded
   users (Alice, Bob, Carol) from `/login` to demonstrate the app, including
   the sharing flow between them.
@@ -31,7 +42,8 @@ share documents between a few mock users.
   routes.
 - **Prisma + Postgres** (developed against [Neon](https://neon.tech)'s free
   tier) via the `pg` driver adapter.
-- **TipTap** (v3, `StarterKit`) for rich text editing.
+- **TipTap** (v3, `StarterKit`) for rich text editing, plus a custom mark
+  extension for anchored comments.
 - **Tailwind CSS** (with `@tailwindcss/typography`) for styling.
 - **Vitest** for automated tests.
 
@@ -100,9 +112,15 @@ note](./ARCHITECTURE.md) for the reasoning):
 - **Auth**: mock/seeded users only, no passwords, no signup.
 - **Sharing model**: binary access (shared or not) — no view-only vs.
   edit-only roles, and no per-share revoke history.
-- **Collaboration**: no real-time presence, live cursors, or simultaneous
-  multi-user editing (last save wins). Autosave + refresh-to-see-others'-
-  changes is the model.
+- **Collaboration**: presence (who has a document open) is shown, but there's
+  no live co-editing — two people editing the same document at the same time
+  will have last-save-wins behavior. Autosave + refresh-to-see-others'-changes
+  is the model.
+- **Comments**: flat, not threaded (no replies), and no suggestion/track-
+  changes mode — see the AI workflow note for why comments were built instead.
+- **Version history**: automatic checkpoints only (no manual "save version"),
+  throttled to roughly one snapshot per 5 minutes of active editing — it's a
+  coarse timeline, not a full edit-by-edit history.
 - **Upload size**: capped at 1MB per file; document content is capped at 2MB
   server-side.
 

@@ -11,26 +11,32 @@ datasource db {
 }
 
 model User {
-  id       String   @id @default(cuid())
+  id       String @id @default(cuid())
   name     String
   colorHex String
 
-  ownedDocuments Document[]      @relation("OwnedDocuments")
-  sharedWithMe   DocumentShare[]
+  ownedDocuments   Document[]         @relation("OwnedDocuments")
+  sharedWithMe     DocumentShare[]
+  presences        DocumentPresence[]
+  comments         Comment[]
+  documentVersions DocumentVersion[]
 
   createdAt DateTime @default(now())
 }
 
 model Document {
-  id             String   @id @default(cuid())
+  id             String  @id @default(cuid())
   title          String
-  content        Json     @default("{\"type\":\"doc\",\"content\":[{\"type\":\"paragraph\"}]}")
+  content        Json    @default("{\"type\":\"doc\",\"content\":[{\"type\":\"paragraph\"}]}")
   sourceFileName String?
 
   owner   User   @relation("OwnedDocuments", fields: [ownerId], references: [id])
   ownerId String
 
-  shares DocumentShare[]
+  shares    DocumentShare[]
+  presences DocumentPresence[]
+  comments  Comment[]
+  versions  DocumentVersion[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -48,4 +54,49 @@ model DocumentShare {
   createdAt DateTime @default(now())
 
   @@unique([documentId, userId])
+}
+
+model DocumentPresence {
+  id String @id @default(cuid())
+
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  documentId String
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  lastSeenAt DateTime @updatedAt
+
+  @@unique([documentId, userId])
+}
+
+model Comment {
+  id String @id @default(cuid())
+
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  documentId String
+
+  author   User   @relation(fields: [authorId], references: [id])
+  authorId String
+
+  body       String
+  quotedText String
+  resolved   Boolean @default(false)
+
+  createdAt DateTime @default(now())
+}
+
+model DocumentVersion {
+  id String @id @default(cuid())
+
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  documentId String
+
+  title   String
+  content Json
+
+  createdBy   User   @relation(fields: [createdById], references: [id])
+  createdById String
+
+  createdAt DateTime @default(now())
 }
