@@ -1,8 +1,12 @@
 import { requireCurrentUser } from "@/lib/auth";
+import { getDocumentsForUser } from "@/lib/documents";
+import { formatRelativeTime } from "@/lib/format";
+import { DocumentList } from "@/components/DocumentList";
 import { logout } from "./actions";
 
 export default async function DashboardPage() {
   const user = await requireCurrentUser();
+  const { owned, shared } = await getDocumentsForUser(user.id);
 
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-black">
@@ -34,23 +38,19 @@ export default async function DashboardPage() {
       </header>
 
       <main className="mx-auto max-w-4xl px-6 py-10">
-        <section className="mb-10">
-          <h2 className="mb-3 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-            My Documents
-          </h2>
-          <div className="rounded-lg border border-dashed border-zinc-300 p-8 text-center text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
-            No documents yet. Document creation lands in Phase 2.
-          </div>
-        </section>
-
-        <section>
-          <h2 className="mb-3 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-            Shared with Me
-          </h2>
-          <div className="rounded-lg border border-dashed border-zinc-300 p-8 text-center text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
-            Nothing shared with you yet.
-          </div>
-        </section>
+        <DocumentList
+          owned={owned.map((doc) => ({
+            id: doc.id,
+            title: doc.title,
+            updatedAtLabel: formatRelativeTime(doc.updatedAt),
+          }))}
+          shared={shared.map((doc) => ({
+            id: doc.id,
+            title: doc.title,
+            updatedAtLabel: formatRelativeTime(doc.updatedAt),
+            owner: doc.owner,
+          }))}
+        />
       </main>
     </div>
   );
