@@ -7,7 +7,8 @@
 
 - **Source code** — this repository. Full history is phase-by-phase (see
   commit log): scaffold → mock auth/dashboard → document CRUD → rich text
-  editing (TipTap) → file upload → sharing → validation/tests/docs.
+  editing (TipTap) → file upload → sharing → validation/tests/docs → stretch
+  features (real-time collaborative editing, comments).
 - **[README.md](./README.md)** — local setup and run instructions, seeded
   accounts, supported upload types, and known limitations.
 - **[ARCHITECTURE.md](./ARCHITECTURE.md)** — architecture note: what was
@@ -20,10 +21,14 @@
 
 ## Pending
 
-- **Live deployment URL** — pending (Phase 7).
+- **Live deployment URL** — pending. Note this app now needs two deployed
+  processes (the Next.js app + the standalone `collab-server/` WebSocket
+  server) — see the README's [Architecture](./README.md#architecture-running-locally-two-processes)
+  section.
 - **Walkthrough video URL** — pending, to be recorded after deployment.
 - **Screenshots / demo GIF** — pending, if needed once the live deployment is
-  up (setup has no unusual manual steps beyond what's in the README).
+  up. Local setup now requires running two processes (`npm run dev` and
+  `npm run collab-server`) — documented in the README, not just implied.
 
 ## Status: what's working vs. incomplete
 
@@ -40,15 +45,21 @@ smoke tests after each phase:
 - Validation and error handling: empty titles, unsupported/empty/oversized
   file uploads, oversized document content, 401/403/404 responses, and a
   custom not-found/error UI.
+- Real-time collaborative editing: multiple users editing the same document
+  see each other's changes live with colored cursors (Yjs + Hocuspocus over
+  WebSocket), verified with real multi-client connection tests including
+  access-control rejection at the WebSocket layer.
+- Threaded, text-anchored comments: select text, comment, resolve/reopen
+  without losing the anchor, delete removes the highlight.
 
 **Incomplete / not attempted** (see [ARCHITECTURE.md](./ARCHITECTURE.md) for
 the reasoning):
 
 - Real authentication (mock/seeded users only).
 - Granular sharing roles (view-only vs. edit) — sharing is currently all-or-
-  nothing edit access.
-- Real-time collaboration (live cursors/presence, concurrent-edit merging).
+  nothing edit access. Being worked on next.
 - Document version history, export to PDF/Markdown, `.docx` import.
+- Suggestion/track-changes mode (comments were built instead).
 
 ## What I'd build next with another 2-4 hours
 

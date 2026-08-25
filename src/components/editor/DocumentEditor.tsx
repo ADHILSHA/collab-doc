@@ -1,14 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import {
-  EditorContent,
-  useEditor,
-  useEditorState,
-  type Editor,
-  type JSONContent,
-} from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
+import { EditorContent, useEditorState, type Editor } from "@tiptap/react";
 import {
   Bold,
   Italic,
@@ -18,37 +11,32 @@ import {
   Pilcrow,
   List,
   ListOrdered,
-  Check,
   Loader2,
-  AlertCircle,
+  Wifi,
+  WifiOff,
   MessageSquarePlus,
   MessageSquare,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { CommentMark } from "./CommentMark";
 import { AddCommentDialog } from "./AddCommentDialog";
 import { CommentsDialog, type CommentT } from "./CommentsDialog";
 
-const AUTOSAVE_DELAY_MS = 1000;
 const COMMENT_FLASH_CLASS = "comment-mark-flash";
 const COMMENT_FLASH_DURATION_MS = 1500;
 
 export function DocumentEditor({
+  editor,
   documentId,
   currentUserId,
   isOwner,
-  initialContent,
+  connectionStatus,
 }: {
+  editor: Editor | null;
   documentId: string;
   currentUserId: string;
   isOwner: boolean;
-  initialContent: JSONContent;
+  connectionStatus: "connecting" | "connected" | "disconnected";
 }) {
-  const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">(
-    "idle",
-  );
-  const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-
   const [comments, setComments] = useState<CommentT[]>([]);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [commentsDialogOpen, setCommentsDialogOpen] = useState(false);
@@ -65,20 +53,21 @@ export function DocumentEditor({
       .catch(() => {});
   }, [documentId]);
 
-  async function save(content: JSONContent) {
-    setStatus("saving");
-    try {
-      const res = await fetch(`/api/documents/${documentId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content }),
-      });
-      if (!res.ok) throw new Error();
-      setStatus("saved");
-    } catch {
-      setStatus("error");
-    }
-  }
+  useEffect(() => {
+    if (!editor) return;
+    const handleClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      const anchor = target.closest("[data-comment-id]");
+      const commentId = anchor?.getAttribute("data-comment-id");
+      if (commentId) {
+        setFocusedCommentId(commentId);
+        setCommentsDialogOpen(true);
+      }
+    };
+    const dom = editor.view.dom;
+    dom.addEventListener("click", handleClick);
+    return () => dom.removeEventListener("click", handleClick);
+  }, [editor]);
 
   function flashAnchor(commentId: string) {
     const el = document.querySelector(`[data-comment-id="${commentId}"]`);
@@ -87,41 +76,6 @@ export function DocumentEditor({
     el.classList.add(COMMENT_FLASH_CLASS);
     setTimeout(() => el.classList.remove(COMMENT_FLASH_CLASS), COMMENT_FLASH_DURATION_MS);
   }
-
-  const editor = useEditor({
-    extensions: [StarterKit, CommentMark],
-    content: initialContent,
-    immediatelyRender: false,
-    editorProps: {
-      attributes: {
-        class:
-          "prose prose-zinc dark:prose-invert max-w-none min-h-[60vh] focus:outline-none",
-      },
-      handleClick: (_view, _pos, event) => {
-        const target = event.target as HTMLElement;
-        const anchor = target.closest("[data-comment-id]");
-        const commentId = anchor?.getAttribute("data-comment-id");
-        if (commentId) {
-          setFocusedCommentId(commentId);
-          setCommentsDialogOpen(true);
-        }
-        return false;
-      },
-    },
-    onUpdate: ({ editor }) => {
-      if (saveTimeout.current) clearTimeout(saveTimeout.current);
-      saveTimeout.current = setTimeout(
-        () => save(editor.getJSON()),
-        AUTOSAVE_DELAY_MS,
-      );
-    },
-  });
-
-  useEffect(() => {
-    return () => {
-      if (saveTimeout.current) clearTimeout(saveTimeout.current);
-    };
-  }, []);
 
   function openAddCommentDialog() {
     if (!editor) return;
@@ -146,12 +100,7 @@ export function DocumentEditor({
     const comment = (await res.json()) as CommentT;
 
     setComments((prev) => [...prev, comment]);
-    editor
-      .chain()
-      .setTextSelection(selection)
-      .setComment(comment.id)
-      .run();
-    save(editor.getJSON());
+    editor.chain().setTextSelection(selection).setComment(comment.id).run();
     setAddDialogOpen(false);
   }
 
@@ -172,10 +121,7 @@ export function DocumentEditor({
     });
     if (!res.ok) throw new Error("Failed to delete comment");
     setComments((prev) => prev.filter((c) => c.id !== commentId));
-    if (editor) {
-      editor.commands.unsetComment(commentId);
-      save(editor.getJSON());
-    }
+    editor?.commands.unsetComment(commentId);
   }
 
   if (!editor) {
@@ -192,7 +138,7 @@ export function DocumentEditor({
     <div className="overflow-hidden rounded-lg border border-border bg-surface shadow-xs">
       <Toolbar
         editor={editor}
-        status={status}
+        connectionStatus={connectionStatus}
         unresolvedCount={comments.filter((c) => !c.resolved).length}
         onAddComment={openAddCommentDialog}
         onOpenComments={() => {
@@ -230,13 +176,13 @@ export function DocumentEditor({
 
 function Toolbar({
   editor,
-  status,
+  connectionStatus,
   unresolvedCount,
   onAddComment,
   onOpenComments,
 }: {
   editor: Editor;
-  status: string;
+  connectionStatus: "connecting" | "connected" | "disconnected";
   unresolvedCount: number;
   onAddComment: () => void;
   onOpenComments: () => void;
@@ -343,22 +289,22 @@ function Toolbar({
       </ToolbarButton>
 
       <div className="ml-auto flex items-center gap-1.5 pr-1 text-xs text-muted-foreground">
-        {status === "saving" && (
+        {connectionStatus === "connecting" && (
           <>
             <Loader2 className="size-3.5 animate-spin" />
-            Saving…
+            Connecting…
           </>
         )}
-        {status === "saved" && (
+        {connectionStatus === "connected" && (
           <span className="flex items-center gap-1 text-success">
-            <Check className="size-3.5" />
-            Saved
+            <Wifi className="size-3.5" />
+            Live
           </span>
         )}
-        {status === "error" && (
+        {connectionStatus === "disconnected" && (
           <span className="flex items-center gap-1 text-error">
-            <AlertCircle className="size-3.5" />
-            Couldn&apos;t save
+            <WifiOff className="size-3.5" />
+            Offline
           </span>
         )}
       </div>

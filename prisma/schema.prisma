@@ -15,9 +15,8 @@ model User {
   name     String
   colorHex String
 
-  ownedDocuments Document[]         @relation("OwnedDocuments")
+  ownedDocuments Document[]      @relation("OwnedDocuments")
   sharedWithMe   DocumentShare[]
-  presences      DocumentPresence[]
   comments       Comment[]
 
   createdAt DateTime @default(now())
@@ -27,14 +26,14 @@ model Document {
   id             String   @id @default(cuid())
   title          String
   content        Json     @default("{\"type\":\"doc\",\"content\":[{\"type\":\"paragraph\"}]}")
+  yjsState       Bytes?
   sourceFileName String?
 
   owner   User   @relation("OwnedDocuments", fields: [ownerId], references: [id])
   ownerId String
 
-  shares    DocumentShare[]
-  presences DocumentPresence[]
-  comments  Comment[]
+  shares   DocumentShare[]
+  comments Comment[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -50,20 +49,6 @@ model DocumentShare {
   userId String
 
   createdAt DateTime @default(now())
-
-  @@unique([documentId, userId])
-}
-
-model DocumentPresence {
-  id String @id @default(cuid())
-
-  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  documentId String
-
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId String
-
-  lastSeenAt DateTime @updatedAt
 
   @@unique([documentId, userId])
 }

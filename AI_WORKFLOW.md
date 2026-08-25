@@ -5,8 +5,9 @@
 **Claude Code** (Claude Sonnet 5) was the primary and only tool — used
 interactively in the terminal for the entire build, not as a one-shot
 generator. The app was built phase by phase (scaffold → auth → document CRUD
-→ rich text editing → file upload → sharing → validation/tests/docs), with a
-manual check in the browser after each phase before moving on.
+→ rich text editing → file upload → sharing → validation/tests/docs → stretch
+features), with a manual check in the browser after each phase before moving
+on.
 
 ## Where AI materially sped up the work
 
@@ -30,6 +31,15 @@ manual check in the browser after each phase before moving on.
     `serverExternalPackages` in `next.config.ts` so they run un-bundled. This
     took actually reading the compiled `.cjs` output and the dev server logs,
     not just retrying variations.
+  - The original polling-based presence feature had a real bug: reported by
+    manual testing as "the other person's avatar only shows up after I
+    refresh." Claude Code reproduced it with a standalone script rather than
+    guessing, found that Prisma's `upsert({ update: {} })` never touches an
+    `@updatedAt` field when the update payload is empty (so a "heartbeat"
+    silently stopped updating after the first write), and fixed it by setting
+    the timestamp explicitly. That feature was later replaced entirely by
+    Yjs awareness once real-time editing was added, but the debugging
+    approach — reproduce first, then fix — is the same one used throughout.
 - **End-to-end smoke testing via curl**: after each phase, Claude Code ran
   the dev server and exercised the real HTTP endpoints (401/403/404/400
   paths, not just happy paths) as part of its own verification before
@@ -56,6 +66,18 @@ manual check in the browser after each phase before moving on.
   delete) rather than leaving it implicit, and had that reflected consistently
   in both the API authorization checks and the UI (no Share/Delete controls
   shown to non-owners).
+- **Overriding the AI's own scope recommendation, deliberately**: for
+  "real-time collaboration," Claude Code initially recommended (and I
+  accepted) presence-only indicators — an avatar showing who else has a
+  document open, polling every 5s — specifically to avoid the added
+  infrastructure of a real WebSocket/CRDT server. After using it, I decided
+  the assignment was better served by genuinely live editing, and directed
+  a switch to that harder path. Claude Code then implemented it properly
+  (Yjs + Hocuspocus, a second standalone process) rather than a shortcut
+  broadcast hack, and in the process found and fixed a real bug in the
+  presence feature being replaced (see below) — a case where pushing back on
+  the AI's first, more conservative recommendation was the right call, and
+  the AI executed the harder version faithfully once asked.
 
 ## How I verified correctness, UX quality, and reliability
 
@@ -76,3 +98,12 @@ manual check in the browser after each phase before moving on.
   rendering, drag/click interactions, whether autosave actually *feels*
   responsive — was left to be manually checked in the browser after each
   phase before proceeding, rather than assumed correct from the code.
+- **Real multi-client verification for real-time features**: for both the
+  presence feature and later live collaborative editing, verification wasn't
+  just "the code compiles" — Claude Code wrote small standalone scripts that
+  opened two independent WebSocket connections (as two different seeded
+  users) against the actual running server, confirmed one user's edit is
+  observed by the other within the sync window, confirmed a user without
+  document access is rejected at the WebSocket layer too (not just the REST
+  API), and confirmed edits actually land in Postgres — before ever opening
+  two browser windows to eyeball it.
