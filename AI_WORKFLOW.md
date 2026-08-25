@@ -5,8 +5,9 @@
 **Claude Code** (Claude Sonnet 5) was the primary and only tool — used
 interactively in the terminal for the entire build, not as a one-shot
 generator. The app was built phase by phase (scaffold → auth → document CRUD
-→ rich text editing → file upload → sharing → validation/tests/docs), with a
-manual check in the browser after each phase before moving on.
+→ rich text editing → file upload → sharing → validation/tests/docs → stretch
+features: presence → comments → version history), with a manual check in the
+browser after each phase before moving on.
 
 ## Where AI materially sped up the work
 
@@ -30,6 +31,12 @@ manual check in the browser after each phase before moving on.
     `serverExternalPackages` in `next.config.ts` so they run un-bundled. This
     took actually reading the compiled `.cjs` output and the dev server logs,
     not just retrying variations.
+  - The presence feature was reported (by manual testing) as "the other
+    person's avatar only shows up after I refresh." Claude Code reproduced it
+    with a standalone script rather than guessing, found that Prisma's
+    `upsert({ update: {} })` never touches an `@updatedAt` field when the
+    update payload is empty (so the heartbeat silently stopped updating after
+    the first write), and fixed it by setting the timestamp explicitly.
 - **End-to-end smoke testing via curl**: after each phase, Claude Code ran
   the dev server and exercised the real HTTP endpoints (401/403/404/400
   paths, not just happy paths) as part of its own verification before
@@ -56,6 +63,30 @@ manual check in the browser after each phase before moving on.
   delete) rather than leaving it implicit, and had that reflected consistently
   in both the API authorization checks and the UI (no Share/Delete controls
   shown to non-owners).
+- **Full live co-editing, then reverted**: I initially directed a switch from
+  presence-only indicators to genuine real-time co-editing (Yjs + a
+  standalone Hocuspocus WebSocket server, since Vercel's serverless functions
+  can't hold persistent connections). Claude Code implemented it properly —
+  not a shortcut broadcast hack — and verified it with real two-client
+  WebSocket test scripts. I then decided to pull it back out of the main
+  branch to keep it shippable and revisit later with more time; that work
+  wasn't discarded, it's preserved on a separate branch. Version history
+  (this phase) was built against the simpler pre-Yjs autosave model as a
+  result.
+- **A real infra mishap, handled transparently**: working across the
+  WebSocket branch and this one against the *same* development database left
+  the database's actual schema out of sync with this branch's migration
+  history (a dropped table, an added column that shouldn't exist here). Fully
+  reconciling it meant resetting the dev database. Claude Code did not do
+  this unilaterally — Prisma's CLI itself has a built-in safety check that
+  blocks AI agents from running `migrate reset` without a human explicitly
+  consenting in-conversation, and Claude Code surfaced the exact command, the
+  motivation, and the fact that it's dev-only data before asking. I gave
+  explicit consent, but a second layer — the harness's own permission
+  classifier — separately blocked Claude Code from setting Prisma's consent
+  env var itself (it looked like a self-authorization pattern), so I ran the
+  reset command myself instead. Two independent safety layers, both worked
+  as intended, and no data was lost silently.
 
 ## How I verified correctness, UX quality, and reliability
 
@@ -76,3 +107,9 @@ manual check in the browser after each phase before moving on.
   rendering, drag/click interactions, whether autosave actually *feels*
   responsive — was left to be manually checked in the browser after each
   phase before proceeding, rather than assumed correct from the code.
+- **Verifying the "undo-safety" property, not just the happy path**: for
+  version history, the important property isn't "can you restore a version"
+  (trivial to get right) but "can restoring ever lose work" (easy to get
+  subtly wrong). Verification explicitly checked that restoring creates a new
+  version of the pre-restore state and that the version count increases
+  accordingly, rather than just checking that content changed.

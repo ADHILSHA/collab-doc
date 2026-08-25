@@ -23,11 +23,13 @@ import {
   AlertCircle,
   MessageSquarePlus,
   MessageSquare,
+  History,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CommentMark } from "./CommentMark";
 import { AddCommentDialog } from "./AddCommentDialog";
 import { CommentsDialog, type CommentT } from "./CommentsDialog";
+import { VersionHistoryDialog } from "./VersionHistoryDialog";
 
 const AUTOSAVE_DELAY_MS = 1000;
 const COMMENT_FLASH_CLASS = "comment-mark-flash";
@@ -52,6 +54,7 @@ export function DocumentEditor({
   const [comments, setComments] = useState<CommentT[]>([]);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [commentsDialogOpen, setCommentsDialogOpen] = useState(false);
+  const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
   const [focusedCommentId, setFocusedCommentId] = useState<string | null>(null);
   const [pendingQuote, setPendingQuote] = useState("");
   const pendingSelectionRef = useRef<{ from: number; to: number } | null>(
@@ -199,6 +202,7 @@ export function DocumentEditor({
           setFocusedCommentId(null);
           setCommentsDialogOpen(true);
         }}
+        onOpenHistory={() => setHistoryDialogOpen(true)}
       />
       <div className="px-6 py-8 sm:px-10">
         <EditorContent editor={editor} />
@@ -224,6 +228,12 @@ export function DocumentEditor({
           setTimeout(() => flashAnchor(commentId), 150);
         }}
       />
+
+      <VersionHistoryDialog
+        open={historyDialogOpen}
+        onOpenChange={setHistoryDialogOpen}
+        documentId={documentId}
+      />
     </div>
   );
 }
@@ -234,12 +244,14 @@ function Toolbar({
   unresolvedCount,
   onAddComment,
   onOpenComments,
+  onOpenHistory,
 }: {
   editor: Editor;
   status: string;
   unresolvedCount: number;
   onAddComment: () => void;
   onOpenComments: () => void;
+  onOpenHistory: () => void;
 }) {
   const state = useEditorState({
     editor,
@@ -340,6 +352,9 @@ function Toolbar({
             </span>
           )}
         </span>
+      </ToolbarButton>
+      <ToolbarButton active={false} label="Version history" onClick={onOpenHistory}>
+        <History />
       </ToolbarButton>
 
       <div className="ml-auto flex items-center gap-1.5 pr-1 text-xs text-muted-foreground">

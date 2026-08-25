@@ -6,6 +6,7 @@ import {
   updateDocument,
 } from "@/lib/documents";
 import { isOwner } from "@/lib/permissions";
+import { maybeSnapshotVersion } from "@/lib/versions";
 import type { Prisma } from "@/generated/prisma/client";
 
 const MAX_CONTENT_SIZE_BYTES = 2 * 1024 * 1024; // 2MB
@@ -77,6 +78,10 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
 
   if (Object.keys(updates).length === 0) {
     return NextResponse.json({ error: "Nothing to update" }, { status: 400 });
+  }
+
+  if (updates.content !== undefined) {
+    await maybeSnapshotVersion(id, user.id);
   }
 
   const updated = await updateDocument(id, updates);

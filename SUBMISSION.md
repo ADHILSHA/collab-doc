@@ -7,7 +7,8 @@
 
 - **Source code** — this repository. Full history is phase-by-phase (see
   commit log): scaffold → mock auth/dashboard → document CRUD → rich text
-  editing (TipTap) → file upload → sharing → validation/tests/docs.
+  editing (TipTap) → file upload → sharing → validation/tests/docs → stretch
+  features (presence, comments, version history).
 - **[README.md](./README.md)** — local setup and run instructions, seeded
   accounts, supported upload types, and known limitations.
 - **[ARCHITECTURE.md](./ARCHITECTURE.md)** — architecture note: what was
@@ -20,7 +21,7 @@
 
 ## Pending
 
-- **Live deployment URL** — pending (Phase 7).
+- **Live deployment URL** — pending.
 - **Walkthrough video URL** — pending, to be recorded after deployment.
 - **Screenshots / demo GIF** — pending, if needed once the live deployment is
   up (setup has no unusual manual steps beyond what's in the README).
@@ -40,23 +41,31 @@ smoke tests after each phase:
 - Validation and error handling: empty titles, unsupported/empty/oversized
   file uploads, oversized document content, 401/403/404 responses, and a
   custom not-found/error UI.
+- Presence: avatars showing who else currently has a document open
+  (polling-based).
+- Threaded, text-anchored comments: select text, comment, resolve/reopen
+  without losing the anchor, delete removes the highlight.
+- Version history: automatic throttled checkpoints, restore with undo-safety
+  (restoring always saves the pre-restore state as a version first).
 
 **Incomplete / not attempted** (see [ARCHITECTURE.md](./ARCHITECTURE.md) for
 the reasoning):
 
 - Real authentication (mock/seeded users only).
 - Granular sharing roles (view-only vs. edit) — sharing is currently all-or-
-  nothing edit access.
-- Real-time collaboration (live cursors/presence, concurrent-edit merging).
-- Document version history, export to PDF/Markdown, `.docx` import.
+  nothing edit access. Being worked on next.
+- Live co-editing (real-time concurrent editing with conflict-free merging).
+  Prototyped separately with Yjs + a standalone WebSocket server, preserved
+  on a separate branch, but not merged into this build.
+- Export to PDF/Markdown, `.docx` import.
+- Suggestion/track-changes mode (comments were built instead).
 
 ## What I'd build next with another 2-4 hours
 
-1. **Optimistic concurrency / conflict warning** on autosave, so two sessions
-   editing the same document don't silently overwrite each other.
+1. **Merge in live co-editing** (Yjs + Hocuspocus, already built and verified
+   on a separate branch) now that the simpler stretch features are stable.
 2. **View-only sharing** as a second permission tier, since the data model
    (`DocumentShare`) already supports adding a `role` column with minimal
    migration.
-3. **Document version history** (the brief's suggested stretch goal) — likely
-   the best return on effort given the content is already stored as
-   versionable JSON.
+3. **Export to Markdown**, since document content is already stored as
+   easily-serializable JSON.
