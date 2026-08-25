@@ -4,7 +4,8 @@ A lightweight, Google-Docs-inspired collaborative document editor: create and
 edit rich-text documents, import `.txt`/`.md` files as new documents, and
 share documents between a few mock users.
 
-**Live demo:** _TBD — filled in after deployment (see [Deployment](#deployment))._
+**Live demo:** https://collab-doc-silk.vercel.app/ (log in as one of the
+seeded users — see [Seeded accounts](#seeded-accounts)).
 
 ## Features
 
@@ -126,7 +127,8 @@ note](./ARCHITECTURE.md) for the reasoning):
 
 ## Deployment
 
-_TBD — to be filled in once deployed (Phase 7)._
+Deployed on [Vercel](https://collab-doc-silk.vercel.app/), connected to the
+same Neon Postgres project used for local development.
 
 ## Project docs
 
