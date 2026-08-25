@@ -59,12 +59,24 @@ export async function getDocumentWithAccess(id: string, userId: string) {
     where: { id },
     include: {
       owner: OWNER_SELECT,
-      shares: { select: { userId: true } },
+      shares: { include: { user: OWNER_SELECT } },
     },
   });
 
   if (!doc) return { doc: null, access: false };
   return { doc, access: canAccessDocument(userId, doc) };
+}
+
+export function shareDocument(documentId: string, userId: string) {
+  return prisma.documentShare.upsert({
+    where: { documentId_userId: { documentId, userId } },
+    update: {},
+    create: { documentId, userId },
+  });
+}
+
+export function unshareDocument(documentId: string, userId: string) {
+  return prisma.documentShare.deleteMany({ where: { documentId, userId } });
 }
 
 export function updateDocument(

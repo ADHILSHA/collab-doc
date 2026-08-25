@@ -1,8 +1,8 @@
-import { prisma } from "@/lib/prisma";
+import { getAllUsers } from "@/lib/users";
 import { loginAs } from "./actions";
 
 export default async function LoginPage() {
-  const users = await prisma.user.findMany({ orderBy: { name: "asc" } });
+  const users = await getAllUsers();
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-8 bg-zinc-50 px-4 dark:bg-black">
