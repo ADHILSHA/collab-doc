@@ -1,14 +1,19 @@
 # Submission
 
-> This file is being filled in as the build progresses. Items marked
-> **pending** will be completed in the deployment phase.
+## Links for reference
+
+- **Source code (Google Drive)**: https://drive.google.com/file/d/1TRmVrZUqylCcOld0UDgcCMfeDBpE8dhA/view?usp=sharing
+- **Source code (GitHub)**: https://github.com/ADHILSHA/collab-doc
+- **Live deployment**: https://collab-doc-silk.vercel.app/
+- **Walkthrough video**: https://www.loom.com/share/b4c8815c26a0479a96e20e61bec535b6
 
 ## What's included
 
-- **Source code** — this repository. Full history is phase-by-phase (see
-  commit log): scaffold → mock auth/dashboard → document CRUD → rich text
-  editing (TipTap) → file upload → sharing → validation/tests/docs → stretch
-  features (presence, comments, version history).
+- **Source code** — see [Links](#links) above (GitHub and a Google Drive
+  copy). Full history is phase-by-phase (see commit log): scaffold → mock
+  auth/dashboard → document CRUD → rich text editing (TipTap) → file upload →
+  sharing → validation/tests/docs → stretch features (presence, comments,
+  version history).
 - **[README.md](./README.md)** — local setup and run instructions, seeded
   accounts, supported upload types, and known limitations.
 - **[ARCHITECTURE.md](./ARCHITECTURE.md)** — architecture note: what was
@@ -19,12 +24,9 @@
 - **Automated test** — `src/lib/permissions.test.ts` (Vitest), covering the
   access-control logic used by every document route. Run with `npm run test`.
 
-## Pending
-
-- **Live deployment URL** — pending.
-- **Walkthrough video URL** — pending, to be recorded after deployment.
-- **Screenshots / demo GIF** — pending, if needed once the live deployment is
-  up (setup has no unusual manual steps beyond what's in the README).
+Screenshots/demo GIF weren't included — local setup has no unusual manual
+steps beyond what's in the README, and the walkthrough video (linked above)
+covers the live product.
 
 ## Status: what's working vs. incomplete
 
