@@ -35,6 +35,25 @@ export function createDocument(ownerId: string, title?: string) {
   });
 }
 
+export function createDocumentFromUpload(
+  ownerId: string,
+  data: {
+    title: string;
+    content: Prisma.InputJsonValue;
+    sourceFileName: string;
+  },
+) {
+  const trimmed = data.title.trim().slice(0, TITLE_MAX_LENGTH);
+  return prisma.document.create({
+    data: {
+      ownerId,
+      title: trimmed || DEFAULT_TITLE,
+      content: data.content,
+      sourceFileName: data.sourceFileName,
+    },
+  });
+}
+
 export async function getDocumentWithAccess(id: string, userId: string) {
   const doc = await prisma.document.findUnique({
     where: { id },

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { CURRENT_USER_COOKIE } from "@/lib/session";
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const hasSession = request.cookies.has(CURRENT_USER_COOKIE);
   if (!hasSession) {
     return NextResponse.redirect(new URL("/login", request.url));

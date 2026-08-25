@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { NewDocumentButton } from "./NewDocumentButton";
+import { UploadDocumentButton } from "./UploadDocumentButton";
 
 type BaseDoc = { id: string; title: string; updatedAtLabel: string };
 type OwnedDoc = BaseDoc;
@@ -19,14 +20,21 @@ export function DocumentList({
   return (
     <>
       <section className="mb-10">
-        <div className="mb-3 flex items-center justify-between">
+        <div className="mb-1 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
             My Documents
           </h2>
-          <NewDocumentButton />
+          <div className="flex items-center gap-2">
+            <UploadDocumentButton />
+            <NewDocumentButton />
+          </div>
         </div>
+        <p className="mb-3 text-xs text-zinc-500 dark:text-zinc-400">
+          Upload creates a new document from a .txt or .md file. Other file
+          types aren&apos;t supported.
+        </p>
         {owned.length === 0 ? (
-          <EmptyState text="No documents yet. Create one to get started." />
+          <EmptyState text="No documents yet. Create one or upload a .txt/.md file to get started." />
         ) : (
           <ul className="divide-y divide-zinc-200 rounded-lg border border-zinc-200 bg-white dark:divide-zinc-800 dark:border-zinc-800 dark:bg-zinc-900">
             {owned.map((doc) => (
