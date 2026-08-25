@@ -90,6 +90,8 @@ export default async function DocumentPage({
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-8 sm:px-6">
         <DocumentEditor
           documentId={doc.id}
+          currentUserId={user.id}
+          isOwner={isOwnerView}
           initialContent={doc.content as unknown as JSONContent}
         />
       </main>

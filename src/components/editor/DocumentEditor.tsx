@@ -21,22 +21,49 @@ import {
   Check,
   Loader2,
   AlertCircle,
+  MessageSquarePlus,
+  MessageSquare,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { CommentMark } from "./CommentMark";
+import { AddCommentDialog } from "./AddCommentDialog";
+import { CommentsDialog, type CommentT } from "./CommentsDialog";
 
 const AUTOSAVE_DELAY_MS = 1000;
+const COMMENT_FLASH_CLASS = "comment-mark-flash";
+const COMMENT_FLASH_DURATION_MS = 1500;
 
 export function DocumentEditor({
   documentId,
+  currentUserId,
+  isOwner,
   initialContent,
 }: {
   documentId: string;
+  currentUserId: string;
+  isOwner: boolean;
   initialContent: JSONContent;
 }) {
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">(
     "idle",
   );
   const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const [comments, setComments] = useState<CommentT[]>([]);
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [commentsDialogOpen, setCommentsDialogOpen] = useState(false);
+  const [focusedCommentId, setFocusedCommentId] = useState<string | null>(null);
+  const [pendingQuote, setPendingQuote] = useState("");
+  const pendingSelectionRef = useRef<{ from: number; to: number } | null>(
+    null,
+  );
+
+  useEffect(() => {
+    fetch(`/api/documents/${documentId}/comments`)
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data: CommentT[]) => setComments(data))
+      .catch(() => {});
+  }, [documentId]);
 
   async function save(content: JSONContent) {
     setStatus("saving");
@@ -53,14 +80,32 @@ export function DocumentEditor({
     }
   }
 
+  function flashAnchor(commentId: string) {
+    const el = document.querySelector(`[data-comment-id="${commentId}"]`);
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    el.classList.add(COMMENT_FLASH_CLASS);
+    setTimeout(() => el.classList.remove(COMMENT_FLASH_CLASS), COMMENT_FLASH_DURATION_MS);
+  }
+
   const editor = useEditor({
-    extensions: [StarterKit],
+    extensions: [StarterKit, CommentMark],
     content: initialContent,
     immediatelyRender: false,
     editorProps: {
       attributes: {
         class:
           "prose prose-zinc dark:prose-invert max-w-none min-h-[60vh] focus:outline-none",
+      },
+      handleClick: (_view, _pos, event) => {
+        const target = event.target as HTMLElement;
+        const anchor = target.closest("[data-comment-id]");
+        const commentId = anchor?.getAttribute("data-comment-id");
+        if (commentId) {
+          setFocusedCommentId(commentId);
+          setCommentsDialogOpen(true);
+        }
+        return false;
       },
     },
     onUpdate: ({ editor }) => {
@@ -78,6 +123,61 @@ export function DocumentEditor({
     };
   }, []);
 
+  function openAddCommentDialog() {
+    if (!editor) return;
+    const { from, to } = editor.state.selection;
+    if (from === to) return;
+    const text = editor.state.doc.textBetween(from, to, " ");
+    pendingSelectionRef.current = { from, to };
+    setPendingQuote(text);
+    setAddDialogOpen(true);
+  }
+
+  async function submitComment(body: string) {
+    const selection = pendingSelectionRef.current;
+    if (!selection || !editor) return;
+
+    const res = await fetch(`/api/documents/${documentId}/comments`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ body, quotedText: pendingQuote }),
+    });
+    if (!res.ok) throw new Error("Failed to add comment");
+    const comment = (await res.json()) as CommentT;
+
+    setComments((prev) => [...prev, comment]);
+    editor
+      .chain()
+      .setTextSelection(selection)
+      .setComment(comment.id)
+      .run();
+    save(editor.getJSON());
+    setAddDialogOpen(false);
+  }
+
+  async function toggleResolved(commentId: string, resolved: boolean) {
+    const res = await fetch(`/api/documents/${documentId}/comments/${commentId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ resolved }),
+    });
+    if (!res.ok) throw new Error("Failed to update comment");
+    const updated = (await res.json()) as CommentT;
+    setComments((prev) => prev.map((c) => (c.id === commentId ? updated : c)));
+  }
+
+  async function handleDeleteComment(commentId: string) {
+    const res = await fetch(`/api/documents/${documentId}/comments/${commentId}`, {
+      method: "DELETE",
+    });
+    if (!res.ok) throw new Error("Failed to delete comment");
+    setComments((prev) => prev.filter((c) => c.id !== commentId));
+    if (editor) {
+      editor.commands.unsetComment(commentId);
+      save(editor.getJSON());
+    }
+  }
+
   if (!editor) {
     return (
       <div className="animate-pulse space-y-3 rounded-lg border border-border bg-surface p-6">
@@ -90,15 +190,57 @@ export function DocumentEditor({
 
   return (
     <div className="overflow-hidden rounded-lg border border-border bg-surface shadow-xs">
-      <Toolbar editor={editor} status={status} />
+      <Toolbar
+        editor={editor}
+        status={status}
+        unresolvedCount={comments.filter((c) => !c.resolved).length}
+        onAddComment={openAddCommentDialog}
+        onOpenComments={() => {
+          setFocusedCommentId(null);
+          setCommentsDialogOpen(true);
+        }}
+      />
       <div className="px-6 py-8 sm:px-10">
         <EditorContent editor={editor} />
       </div>
+
+      <AddCommentDialog
+        open={addDialogOpen}
+        onOpenChange={setAddDialogOpen}
+        quotedText={pendingQuote}
+        onSubmit={submitComment}
+      />
+
+      <CommentsDialog
+        open={commentsDialogOpen}
+        onOpenChange={setCommentsDialogOpen}
+        comments={comments}
+        canDelete={(comment) => comment.author.id === currentUserId || isOwner}
+        focusedCommentId={focusedCommentId}
+        onToggleResolved={toggleResolved}
+        onDelete={handleDeleteComment}
+        onFocusAnchor={(commentId) => {
+          setCommentsDialogOpen(false);
+          setTimeout(() => flashAnchor(commentId), 150);
+        }}
+      />
     </div>
   );
 }
 
-function Toolbar({ editor, status }: { editor: Editor; status: string }) {
+function Toolbar({
+  editor,
+  status,
+  unresolvedCount,
+  onAddComment,
+  onOpenComments,
+}: {
+  editor: Editor;
+  status: string;
+  unresolvedCount: number;
+  onAddComment: () => void;
+  onOpenComments: () => void;
+}) {
   const state = useEditorState({
     editor,
     selector: (ctx) => ({
@@ -110,6 +252,7 @@ function Toolbar({ editor, status }: { editor: Editor; status: string }) {
       paragraph: ctx.editor?.isActive("paragraph") ?? false,
       bulletList: ctx.editor?.isActive("bulletList") ?? false,
       orderedList: ctx.editor?.isActive("orderedList") ?? false,
+      hasSelection: !(ctx.editor?.state.selection.empty ?? true),
     }),
   });
 
@@ -178,6 +321,27 @@ function Toolbar({ editor, status }: { editor: Editor; status: string }) {
         <ListOrdered />
       </ToolbarButton>
 
+      <Divider />
+
+      <ToolbarButton
+        active={false}
+        disabled={!state.hasSelection}
+        label="Comment on selection"
+        onClick={onAddComment}
+      >
+        <MessageSquarePlus />
+      </ToolbarButton>
+      <ToolbarButton active={false} label="View comments" onClick={onOpenComments}>
+        <span className="relative">
+          <MessageSquare />
+          {unresolvedCount > 0 && (
+            <span className="absolute -right-1.5 -top-1.5 flex size-3.5 items-center justify-center rounded-full bg-accent text-[9px] font-semibold text-accent-foreground">
+              {unresolvedCount > 9 ? "9+" : unresolvedCount}
+            </span>
+          )}
+        </span>
+      </ToolbarButton>
+
       <div className="ml-auto flex items-center gap-1.5 pr-1 text-xs text-muted-foreground">
         {status === "saving" && (
           <>
@@ -208,11 +372,13 @@ function Divider() {
 
 function ToolbarButton({
   active,
+  disabled,
   label,
   onClick,
   children,
 }: {
   active: boolean;
+  disabled?: boolean;
   label: string;
   onClick: () => void;
   children: React.ReactNode;
@@ -223,9 +389,11 @@ function ToolbarButton({
       aria-label={label}
       aria-pressed={active}
       title={label}
+      disabled={disabled}
       onClick={onClick}
       className={cn(
         "focus-ring flex size-8 items-center justify-center rounded-md text-sm font-medium transition-colors [&_svg]:size-4",
+        "disabled:pointer-events-none disabled:opacity-40",
         active
           ? "bg-accent-muted text-accent"
           : "text-muted-foreground hover:bg-surface-hover hover:text-foreground",
